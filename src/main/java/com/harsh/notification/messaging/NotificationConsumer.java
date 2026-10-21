@@ -37,18 +37,31 @@ public class NotificationConsumer {
             ProcessedNotification existing =
                     repository.findById(event.id()).orElse(null);
 
-            if (existing != null
-                    && existing.getStatus() == NotificationStatus.PROCESSED) {
+            if (existing == null) {
+                throw new IllegalStateException(
+                        "Could not claim notification. ID: " + event.id());
+            }
+
+            if (existing.getStatus() == NotificationStatus.PROCESSED) {
                 System.out.println(
-                        "Duplicate notification skipped. ID: " + event.id()
-                );
+                        "Duplicate notification skipped. ID: " + event.id());
                 return;
             }
 
-            throw new IllegalStateException(
-                    "Notification already claimed but not completed. ID: "
-                            + event.id()
-            );
+            if (existing.getStatus() == NotificationStatus.FAILED) {
+                boolean retried =
+                        processingService.retryFailedNotification(event.id());
+
+                if (!retried) {
+                    throw new IllegalStateException(
+                            "Could not retry failed notification. ID: "
+                                    + event.id());
+                }
+            } else {
+                throw new IllegalStateException(
+                        "Notification is already being processed. ID: "
+                                + event.id());
+            }
         }
 
         try {
@@ -56,14 +69,17 @@ public class NotificationConsumer {
             processingService.markAsProcessed(event.id());
 
             System.out.println(
-                    "Notification processed successfully. ID: " + event.id()
-            );
+                    "Notification processed successfully. ID: " + event.id());
+
         } catch (Exception exception) {
-            processingService.markAsFailed(event.id());
+            try {
+                processingService.markAsFailed(event.id());
+            } catch (Exception statusException) {
+                exception.addSuppressed(statusException);
+            }
 
             System.out.println(
-                    "Notification processing failed. ID: " + event.id()
-            );
+                    "Notification processing failed. ID: " + event.id());
 
             throw exception;
         }

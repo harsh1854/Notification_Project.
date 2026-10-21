@@ -14,18 +14,18 @@ public class NotificationDispatcher {
     private final List<NotificationSender> senders;
     public NotificationDispatcher( List<NotificationSender> senders) {
         this.senders = senders;
-
-        senders.forEach(sender ->
-                System.out.println(
-                        "Registered sender channel: " + sender.getChannel()
-                ));
+        //for testing purpose
+//        senders.forEach(sender ->
+//                System.out.println(
+//                        "Registered sender channel: " + sender.getChannel()
+//                ));
     }
 
     public void dispatch(NotificationEvent event) {
         //for testing purpost to test kafka fail attemps
-        if ("RETRY_TEST".equals(event.message())) {
-            throw new RuntimeException("Temporary retry test failure");
-        }
+//        if ("RETRY_TEST".equals(event.message())) {
+//            throw new RuntimeException("Temporary retry test failure");
+//        }
 
         senders.stream()
                 .filter(sender -> sender.getChannel().equals(event.channel()))

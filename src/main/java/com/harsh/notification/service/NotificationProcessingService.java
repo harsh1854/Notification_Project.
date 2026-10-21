@@ -1,7 +1,6 @@
 
 package com.harsh.notification.service;
 
-import com.harsh.notification.entity.NotificationStatus;
 import com.harsh.notification.entity.ProcessedNotification;
 import com.harsh.notification.repository.ProcessedNotificationRepository;
 import org.springframework.stereotype.Service;
@@ -21,19 +20,21 @@ public class NotificationProcessingService {
 
     @Transactional
     public boolean claimNotification(String id) {
-        int claimed = repository.claimNotification(
-                id,
-                LocalDateTime.now()
-        );
-
+        int claimed = repository.claimNotification(id, LocalDateTime.now());
         return claimed == 1;
+    }
+
+    @Transactional
+    public boolean retryFailedNotification(String id) {
+        int updated = repository.retryFailedNotification(
+                id, LocalDateTime.now());
+        return updated == 1;
     }
 
     @Transactional
     public void markAsProcessed(String id) {
         ProcessedNotification notification =
                 repository.findById(id).orElseThrow();
-
         notification.markAsProcessed();
     }
 
@@ -41,7 +42,6 @@ public class NotificationProcessingService {
     public void markAsFailed(String id) {
         ProcessedNotification notification =
                 repository.findById(id).orElseThrow();
-
         notification.markAsFailed();
     }
 }
