@@ -10,6 +10,6 @@ public class SmsSender implements NotificationSender{
     }
     @Override
     public String getChannel() {
-        return "Sms";
+        return "SMS";
     }
 }

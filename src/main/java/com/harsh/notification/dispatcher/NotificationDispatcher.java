@@ -11,11 +11,16 @@ import java.util.List;
 @Service
 public class NotificationDispatcher {
 
+    private final List<NotificationSender> senders;
     public NotificationDispatcher( List<NotificationSender> senders) {
         this.senders = senders;
+
+        senders.forEach(sender ->
+                System.out.println(
+                        "Registered sender channel: " + sender.getChannel()
+                ));
     }
 
-    private final List<NotificationSender> senders;
     public void dispatch(NotificationEvent event) {
 
         senders.stream()
