@@ -14,11 +14,13 @@ public class NotificationService {
         this.notificationProducer = notificationProducer;
     }
 
+
     public NotificationResponse sendNotification(
             NotificationRequest request) {
 
-        // 1. Create the event
+        // 1. Create the event with a unique ID
         NotificationEvent event = new NotificationEvent(
+                java.util.UUID.randomUUID().toString(),
                 request.getRecipient(),
                 request.getMessage(),
                 request.getChannel().name()
