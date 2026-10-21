@@ -22,6 +22,10 @@ public class NotificationDispatcher {
     }
 
     public void dispatch(NotificationEvent event) {
+        //for testing purpost to test kafka fail attemps
+        if ("RETRY_TEST".equals(event.message())) {
+            throw new RuntimeException("Temporary retry test failure");
+        }
 
         senders.stream()
                 .filter(sender -> sender.getChannel().equals(event.channel()))
