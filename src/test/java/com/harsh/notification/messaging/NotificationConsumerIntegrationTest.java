@@ -1,15 +1,17 @@
-
 package com.harsh.notification.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.harsh.notification.dispatcher.NotificationDispatcher;
 import com.harsh.notification.entity.NotificationStatus;
 import com.harsh.notification.entity.ProcessedNotification;
 import com.harsh.notification.repository.ProcessedNotificationRepository;
+
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -17,21 +19,20 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import com.harsh.notification.dispatcher.NotificationDispatcher;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-
-import com.harsh.notification.dispatcher.NotificationDispatcher;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.timeout;
 
 @SpringBootTest
 class NotificationConsumerIntegrationTest {
 
     @MockitoSpyBean
     private NotificationDispatcher notificationDispatcher;
+
+    @MockitoSpyBean
+    private NotificationConsumer notificationConsumer;
 
 
     @Autowired
@@ -98,6 +99,9 @@ class NotificationConsumerIntegrationTest {
         ObjectMapper objectMapper = new ObjectMapper();
         String eventJson = objectMapper.writeValueAsString(event);
 
+        // Clear previous invocations from other tests
+        clearInvocations(notificationConsumer, notificationDispatcher);
+
         // Publish first event
         kafkaTemplate.send("notification-events", id, eventJson)
                 .get(10, TimeUnit.SECONDS);
@@ -114,17 +118,27 @@ class NotificationConsumerIntegrationTest {
                     );
                 });
 
+        // Verify the first event was consumed and dispatched once
+        verify(notificationConsumer, times(1))
+                .consumeNotification(event);
+        verify(notificationDispatcher, times(1))
+                .dispatch(event);
+
         // Publish the same event again
         kafkaTemplate.send("notification-events", id, eventJson)
                 .get(10, TimeUnit.SECONDS);
 
-        // Wait until the consumer has had time to handle the duplicate
+        // Wait until the consumer receives the duplicate event
         Awaitility.await()
                 .atMost(Duration.ofSeconds(10))
                 .untilAsserted(() ->
-                        verify(notificationDispatcher, times(1))
-                                .dispatch(event)
+                        verify(notificationConsumer, times(2))
+                                .consumeNotification(event)
                 );
+
+        // Duplicate must not be dispatched again
+        verify(notificationDispatcher, times(1))
+                .dispatch(event);
     }
 
 }
