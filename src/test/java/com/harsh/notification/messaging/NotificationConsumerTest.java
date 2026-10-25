@@ -212,4 +212,49 @@ class NotificationConsumerTest {
         verify(notificationDispatcher, never()).dispatch(any());
     }
 
+
+    @Test
+    void shouldPreserveDispatchExceptionWhenMarkingAsFailedAlsoThrows() {
+        NotificationEvent event = new NotificationEvent(
+                "failure-status-test-id",
+                "user@example.com",
+                "Hello",
+                "EMAIL"
+        );
+
+        RuntimeException dispatchException =
+                new RuntimeException("Dispatch failed");
+
+        RuntimeException statusException =
+                new RuntimeException("Could not update FAILED status");
+
+        when(processingService.claimNotification("failure-status-test-id"))
+                .thenReturn(true);
+
+        doThrow(dispatchException)
+                .when(notificationDispatcher)
+                .dispatch(event);
+
+        doThrow(statusException)
+                .when(processingService)
+                .markAsFailed("failure-status-test-id");
+
+        RuntimeException thrown = assertThrows(
+                RuntimeException.class,
+                () -> notificationConsumer.consumeNotification(event)
+        );
+
+        assertEquals("Dispatch failed", thrown.getMessage());
+        assertSame(dispatchException, thrown);
+        assertEquals(1, thrown.getSuppressed().length);
+        assertSame(statusException, thrown.getSuppressed()[0]);
+
+        verify(notificationDispatcher, times(1)).dispatch(event);
+        verify(processingService, times(1))
+                .markAsFailed("failure-status-test-id");
+        verify(processingService, never())
+                .markAsProcessed("failure-status-test-id");
+    }
+
+
 }
