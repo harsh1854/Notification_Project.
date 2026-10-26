@@ -14,4 +14,14 @@ public class KafkaTopicConfig {
                 .replicas(1)
                 .build();
     }
+
+
+    @Bean
+    public NewTopic notificationDltTopic() {
+        return TopicBuilder.name("notification-events-dlt")
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
 }

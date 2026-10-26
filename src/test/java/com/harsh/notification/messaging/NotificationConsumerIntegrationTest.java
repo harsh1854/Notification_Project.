@@ -19,11 +19,8 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
-import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.timeout;
 
 @SpringBootTest
 class NotificationConsumerIntegrationTest {
@@ -141,4 +138,81 @@ class NotificationConsumerIntegrationTest {
                 .dispatch(event);
     }
 
+
+    @Test
+    void shouldRetryFailedNotificationAndMarkItAsProcessed() throws Exception {
+        String id = UUID.randomUUID().toString();
+
+        // Arrange: PostgreSQL mein notification ko FAILED state mein create karo
+        ProcessedNotification failedNotification = new ProcessedNotification(id);
+        failedNotification.markAsFailed();
+        repository.saveAndFlush(failedNotification);
+
+        NotificationEvent event = new NotificationEvent(
+                id,
+                "retry-test@example.com",
+                "Retry integration test",
+                "EMAIL"
+        );
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        String eventJson = objectMapper.writeValueAsString(event);
+
+        clearInvocations(notificationConsumer, notificationDispatcher);
+
+        // Act: same ID ka Kafka event publish karo
+        kafkaTemplate.send("notification-events", id, eventJson)
+                .get(10, TimeUnit.SECONDS);
+
+        // Assert: consumer FAILED record ko retry karke PROCESSED kare
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(20))
+                .untilAsserted(() -> {
+                    ProcessedNotification notification =
+                            repository.findById(id).orElseThrow();
+
+                    assertEquals(
+                            NotificationStatus.PROCESSED,
+                            notification.getStatus()
+                    );
+                });
+
+        verify(notificationDispatcher, timeout(1000).times(1))
+                .dispatch(event);
+    }
+
+
+    @Test
+    void shouldPublishFailedEventToDeadLetterTopic() throws Exception {
+        String id = UUID.randomUUID().toString();
+
+        NotificationEvent event = new NotificationEvent(
+                id,
+                "dlt-test@example.com",
+                "DLT integration test",
+                "EMAIL"
+        );
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        String eventJson = objectMapper.writeValueAsString(event);
+
+        clearInvocations(notificationConsumer, notificationDispatcher);
+
+        doThrow(new RuntimeException("Intentional DLT test failure"))
+                .when(notificationDispatcher)
+                .dispatch(event);
+
+        kafkaTemplate.send("notification-events", id, eventJson)
+                .get(10, TimeUnit.SECONDS);
+
+        // Wait until the consumer has exhausted retries and attempted recovery.
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(20))
+                .untilAsserted(() ->
+                        verify(notificationDispatcher, times(3))
+                                .dispatch(event)
+                );
+
+        // DLT message consumption/verification will be added next.
+    }
 }
