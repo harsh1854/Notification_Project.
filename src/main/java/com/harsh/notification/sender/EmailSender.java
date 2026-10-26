@@ -1,18 +1,37 @@
+
 package com.harsh.notification.sender;
 
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 @Service
 public class EmailSender implements NotificationSender {
+
+    private final JavaMailSender mailSender;
+
+    public EmailSender(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
+    }
+
     @Override
     public void sendNotification(String recipient, String message) {
-        System.out.println("Sending EMAIL notification to " + recipient + ": " + message);
+        SimpleMailMessage email = new SimpleMailMessage();
+        email.setTo(recipient);
+        email.setSubject("Notification System Alert");
+        email.setText(message);
+
+        mailSender.send(email);
+
+        System.out.println("EMAIL sent successfully to " + recipient);
     }
+
     @Override
     public String getChannel() {
         return "EMAIL";
     }
 }
+
 
 
 
