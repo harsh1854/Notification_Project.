@@ -42,9 +42,13 @@ public class NotificationConsumer {
                         "Could not claim notification. ID: " + event.id());
             }
 
-            if (existing.getStatus() == NotificationStatus.PROCESSED) {
+            if (existing.getStatus() == NotificationStatus.PROCESSED
+                    || existing.getStatus() == NotificationStatus.SKIPPED) {
+
                 System.out.println(
-                        "Duplicate notification skipped. ID: " + event.id());
+                        "Duplicate or already skipped notification ignored. ID: "
+                                + event.id());
+
                 return;
             }
 
@@ -65,11 +69,21 @@ public class NotificationConsumer {
         }
 
         try {
-            notificationDispatcher.dispatch(event);
-            processingService.markAsProcessed(event.id());
+            boolean dispatched = notificationDispatcher.dispatch(event);
 
-            System.out.println(
-                    "Notification processed successfully. ID: " + event.id());
+            if (dispatched) {
+                processingService.markAsProcessed(event.id());
+
+                System.out.println(
+                        "Notification processed successfully. ID: " + event.id()
+                );
+            } else {
+                processingService.markAsSkipped(event.id());
+
+                System.out.println(
+                        "Notification skipped due to preference. ID: " + event.id()
+                );
+            }
 
         } catch (Exception exception) {
             try {

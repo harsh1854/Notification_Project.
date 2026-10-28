@@ -21,9 +21,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.mail.javamail.JavaMailSender;
+
+import com.harsh.notification.model.NotificationChannel;
+import com.harsh.notification.service.NotificationPreferenceService;
+import org.springframework.beans.factory.annotation.Autowired;
+
 
 @SpringBootTest
 class NotificationConsumerIntegrationTest {
+
+    @Autowired
+    private NotificationPreferenceService preferenceService;
+
+    @MockitoBean
+    private JavaMailSender javaMailSender;
 
     @MockitoSpyBean
     private NotificationDispatcher notificationDispatcher;
@@ -48,6 +61,11 @@ class NotificationConsumerIntegrationTest {
                 "integration-test@example.com",
                 "Integration test notification",
                 "EMAIL"
+        );
+        preferenceService.updatePreference(
+                "integration-test@example.com",
+                NotificationChannel.EMAIL,
+                true
         );
 
         // Act: publish the event to the real Kafka topic
@@ -91,6 +109,12 @@ class NotificationConsumerIntegrationTest {
                 "duplicate-test@example.com",
                 "Duplicate test notification",
                 "EMAIL"
+        );
+
+        preferenceService.updatePreference(
+                "duplicate-test@example.com",
+                NotificationChannel.EMAIL,
+                true
         );
 
         ObjectMapper objectMapper = new ObjectMapper();
@@ -155,6 +179,12 @@ class NotificationConsumerIntegrationTest {
                 "EMAIL"
         );
 
+        preferenceService.updatePreference(
+                "retry-test@example.com",
+                NotificationChannel.EMAIL,
+                true
+        );
+
         ObjectMapper objectMapper = new ObjectMapper();
         String eventJson = objectMapper.writeValueAsString(event);
 
@@ -191,6 +221,12 @@ class NotificationConsumerIntegrationTest {
                 "dlt-test@example.com",
                 "DLT integration test",
                 "EMAIL"
+        );
+
+        preferenceService.updatePreference(
+                "dlt-test@example.com",
+                NotificationChannel.EMAIL,
+                true
         );
 
         ObjectMapper objectMapper = new ObjectMapper();

@@ -52,4 +52,8 @@ public class ProcessedNotification {
     public void markAsFailed() {
         this.status = NotificationStatus.FAILED;
     }
+
+    public void markAsSkipped() {
+        this.status = NotificationStatus.SKIPPED;
+    }
 }

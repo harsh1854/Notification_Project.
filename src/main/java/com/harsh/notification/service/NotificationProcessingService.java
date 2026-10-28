@@ -44,4 +44,12 @@ public class NotificationProcessingService {
                 repository.findById(id).orElseThrow();
         notification.markAsFailed();
     }
+
+    @Transactional
+    public void markAsSkipped(String id) {
+        ProcessedNotification notification =
+                repository.findById(id).orElseThrow();
+
+        notification.markAsSkipped();
+    }
 }

@@ -22,21 +22,49 @@ public class NotificationDispatcher {
         this.preferenceService = preferenceService;
     }
 
-    public void dispatch(NotificationEvent event) {
+//    public void dispatch(NotificationEvent event) {
+//        NotificationChannel channel =
+//                NotificationChannel.valueOf(event.channel());
+//
+//        boolean enabled = preferenceService.getPreference(
+//                event.recipient(),
+//                channel
+//        );
+//
+//        if (!enabled) {
+//            System.out.println(
+//                    "Notification skipped: preference disabled. ID: "
+//                            + event.id()
+//            );
+//            return;
+//        }
+//
+//        NotificationSender sender = senders.stream()
+//                .filter(s -> s.getChannel().equals(event.channel()))
+//                .findFirst()
+//                .orElseThrow(() ->
+//                        new IllegalArgumentException(
+//                                "Unknown channel: " + event.channel()
+//                        )
+//                );
+//
+//        sender.sendNotification(
+//                event.recipient(),
+//                event.message()
+//        );
+//    }
+
+    public boolean dispatch(NotificationEvent event) {
         NotificationChannel channel =
                 NotificationChannel.valueOf(event.channel());
 
-        boolean enabled = preferenceService.getPreference(
-                event.recipient(),
-                channel
-        );
+        boolean enabled =
+                preferenceService.getPreference(event.recipient(), channel);
 
         if (!enabled) {
             System.out.println(
-                    "Notification skipped: preference disabled. ID: "
-                            + event.id()
-            );
-            return;
+                    "Notification skipped: preference disabled. ID: " + event.id());
+            return false;
         }
 
         NotificationSender sender = senders.stream()
@@ -44,13 +72,11 @@ public class NotificationDispatcher {
                 .findFirst()
                 .orElseThrow(() ->
                         new IllegalArgumentException(
-                                "Unknown channel: " + event.channel()
-                        )
-                );
+                                "Unknown channel: " + event.channel()));
 
-        sender.sendNotification(
-                event.recipient(),
-                event.message()
-        );
+        sender.sendNotification(event.recipient(), event.message());
+
+        return true;
     }
+
 }

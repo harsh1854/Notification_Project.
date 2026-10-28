@@ -7,6 +7,8 @@ import com.harsh.notification.repository.NotificationPreferenceRepository;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 public class NotificationPreferenceService {
@@ -40,7 +42,14 @@ public class NotificationPreferenceService {
         String cacheKey = "notification-preference:"
                 + recipient + ":" + channel;
 
-        redisTemplate.delete(cacheKey);
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        redisTemplate.delete(cacheKey);
+                    }
+                }
+        );
 
         return saved;
     }

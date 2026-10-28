@@ -45,7 +45,7 @@ class NotificationConsumerTest {
         when(processingService.claimNotification("test-id"))
                 .thenReturn(true);
 
-        doNothing().when(notificationDispatcher).dispatch(event);
+        when(notificationDispatcher.dispatch(event)).thenReturn(true);
 
         notificationConsumer.consumeNotification(event);
 
@@ -123,6 +123,7 @@ class NotificationConsumerTest {
                 .thenReturn(Optional.of(existing));
         when(processingService.retryFailedNotification("test-id"))
                 .thenReturn(true);
+        when(notificationDispatcher.dispatch(event)).thenReturn(true);
 
         notificationConsumer.consumeNotification(event);
 
