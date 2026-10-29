@@ -85,17 +85,20 @@ public class NotificationConsumer {
                 );
             }
 
-        } catch (Exception exception) {
-            try {
-                processingService.markAsFailed(event.id());
-            } catch (Exception statusException) {
-                exception.addSuppressed(statusException);
-            }
-
-            System.out.println(
-                    "Notification processing failed. ID: " + event.id());
-
-            throw exception;
+        }  catch (Exception exception) {
+        try {
+            processingService.markAsFailed(event.id());
+        } catch (Exception statusException) {
+            exception.addSuppressed(statusException);
         }
+
+        System.err.println(
+                "Notification processing failed. ID: " + event.id()
+        );
+
+        exception.printStackTrace(); // Original error print karega
+
+        throw exception;
+    }
     }
 }
